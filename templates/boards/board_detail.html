@@ -1,0 +1,505 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ board.title }} - Agiram{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.3/dragula.min.css">
+<style>
+    .board-container {
+        overflow-x: auto;
+        white-space: nowrap;
+        padding-bottom: 15px;
+        min-height: 70vh;
+    }
+    .list-column {
+        width: 300px;
+        display: inline-block;
+        vertical-align: top;
+        margin-right: 15px;
+        white-space: normal;
+    }
+    .list-header {
+        padding: 10px;
+        border-radius: 5px 5px 0 0;
+        background-color: #f1f1f1;
+        border-bottom: 1px solid #ddd;
+    }
+    .list-body {
+        min-height: 50px;
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+    .card-item {
+        margin-bottom: 10px;
+        cursor: pointer;
+    }
+    .add-card-form, .add-list-form {
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 0 0 5px 5px;
+        border-top: 1px solid #ddd;
+    }
+    .card-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+    .priority-low {
+        border-left: 4px solid #28a745;
+    }
+    .priority-medium {
+        border-left: 4px solid #ffc107;
+    }
+    .priority-high {
+        border-left: 4px solid #dc3545;
+    }
+    .overdue {
+        border-color: #dc3545;
+    }
+    .completed {
+        opacity: 0.6;
+        text-decoration: line-through;
+    }
+    .add-list-column {
+        width: 300px;
+        display: inline-block;
+        vertical-align: top;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="d-inline me-3">{{ board.title }}</h1>
+        {% if user == board.owner %}
+        <div class="btn-group">
+            <a href="{% url 'boards:board_update' board.pk %}" class="btn btn-sm btn-outline-primary">
+                <i class="fas fa-edit me-1"></i>Düzenle
+            </a>
+            <a href="{% url 'boards:board_delete' board.pk %}" class="btn btn-sm btn-outline-danger">
+                <i class="fas fa-trash me-1"></i>Sil
+            </a>
+        </div>
+        {% endif %}
+    </div>
+    <div>
+        <div class="btn-group">
+            <a href="{% url 'ai_assistant:analyze_board' board.pk %}" class="btn btn-primary">
+                <i class="fas fa-chart-line me-1"></i>Analiz Et
+            </a>
+            <a href="{% url 'ai_assistant:generate_sprint_report' board.pk %}" class="btn btn-info">
+                <i class="fas fa-file-alt me-1"></i>Sprint Raporu
+            </a>
+            <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#boardMembersModal">
+                <i class="fas fa-users me-1"></i>Üyeler
+            </button>
+        </div>
+    </div>
+</div>
+
+{% if board.description %}
+<div class="card mb-4">
+    <div class="card-body">
+        <h5 class="card-title"><i class="fas fa-info-circle me-2"></i>Pano Açıklaması</h5>
+        <p class="card-text">{{ board.description }}</p>
+    </div>
+</div>
+{% endif %}
+
+<!-- Pano İçeriği -->
+<div class="board-container">
+    {% for list in lists %}
+    <div class="list-column card shadow-sm" data-list-id="{{ list.id }}">
+        <div class="list-header d-flex justify-content-between align-items-center">
+            <h5 class="m-0">{{ list.title }}</h5>
+            <div class="dropdown">
+                <button class="btn btn-sm btn-link text-dark" type="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li>
+                        <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#editListModal{{ list.id }}">
+                            <i class="fas fa-edit me-1"></i>Düzenle
+                        </button>
+                    </li>
+                    <li>
+                        <button class="dropdown-item" data-bs-toggle="modal" data-bs-target="#deleteListModal{{ list.id }}">
+                            <i class="fas fa-trash me-1"></i>Sil
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="list-body p-2" id="list-{{ list.id }}">
+            {% for card in list.cards.all %}
+            <div class="card card-item priority-{{ card.priority }} {% if card.is_completed %}completed{% endif %} {% if card.is_overdue %}overdue{% endif %}" data-card-id="{{ card.id }}">
+                <div class="card-body p-2">
+                    <h6 class="card-title mb-1">{{ card.title }}</h6>
+                    {% if card.due_date %}
+                    <small class="text-muted d-block mb-1">
+                        <i class="far fa-clock me-1"></i>{{ card.due_date|date:"d.m.Y H:i" }}
+                    </small>
+                    {% endif %}
+                    <div class="card-badges mt-2">
+                        {% if card.is_completed %}
+                        <span class="badge bg-success"><i class="fas fa-check me-1"></i>Tamamlandı</span>
+                        {% endif %}
+                        {% if card.priority == 'high' %}
+                        <span class="badge bg-danger">Yüksek</span>
+                        {% elif card.priority == 'medium' %}
+                        <span class="badge bg-warning text-dark">Orta</span>
+                        {% elif card.priority == 'low' %}
+                        <span class="badge bg-success">Düşük</span>
+                        {% endif %}
+                        {% if card.assigned_to.all %}
+                        <span class="badge bg-info">
+                            <i class="fas fa-user-check me-1"></i>{{ card.assigned_to.count }}
+                        </span>
+                        {% endif %}
+                        {% if card.comments.all %}
+                        <span class="badge bg-secondary">
+                            <i class="far fa-comment me-1"></i>{{ card.comments.count }}
+                        </span>
+                        {% endif %}
+                        {% if card.attachments.all %}
+                        <span class="badge bg-primary">
+                            <i class="fas fa-paperclip me-1"></i>{{ card.attachments.count }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <a href="{% url 'boards:card_detail' card.pk %}" class="stretched-link"></a>
+            </div>
+            {% endfor %}
+        </div>
+        <div class="add-card-form">
+            <form action="{% url 'boards:create_card' list.pk %}" method="post">
+                {% csrf_token %}
+                <div class="input-group">
+                    <input type="text" name="title" class="form-control form-control-sm" placeholder="Kart başlığı ekleyin...">
+                    <button type="submit" class="btn btn-sm btn-primary">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Liste Düzenleme Modalı -->
+        <div class="modal fade" id="editListModal{{ list.id }}" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Liste Düzenle</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form action="{% url 'boards:update_list' list.pk %}" method="post">
+                        {% csrf_token %}
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <label for="list-title-{{ list.id }}" class="form-label">Liste Başlığı</label>
+                                <input type="text" class="form-control" id="list-title-{{ list.id }}" name="title" value="{{ list.title }}" required>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                            <button type="submit" class="btn btn-primary">Kaydet</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Liste Silme Modalı -->
+        <div class="modal fade" id="deleteListModal{{ list.id }}" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Liste Sil</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <p>
+                            <i class="fas fa-exclamation-triangle text-warning me-1"></i>
+                            <strong>{{ list.title }}</strong> listesini silmek istediğinizden emin misiniz?
+                        </p>
+                        <p class="text-danger">Bu işlem listedeki tüm kartları da silecektir ve geri alınamaz.</p>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                        <form action="{% url 'boards:delete_list' list.pk %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-danger">Sil</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+    
+    <!-- Yeni Liste Ekleme -->
+    <div class="add-list-column">
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form action="{% url 'boards:create_list' board.pk %}" method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="list-title" class="form-label">Yeni Liste</label>
+                        <input type="text" class="form-control" id="list-title" name="title" placeholder="Liste başlığı..." required>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-plus me-1"></i>Liste Ekle
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Üyeler Modalı -->
+<div class="modal fade" id="boardMembersModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Pano Üyeleri</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <h6><i class="fas fa-user me-1"></i>Pano Sahibi</h6>
+                    <div class="card">
+                        <div class="card-body py-2">
+                            <div class="d-flex align-items-center">
+                                <img src="{{ board.owner.profile.image.url }}" class="rounded-circle me-2" style="width: 30px; height: 30px;">
+                                <span>{{ board.owner.username }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <h6><i class="fas fa-users me-1"></i>Üyeler</h6>
+                    {% if board_members %}
+                    <ul class="list-group">
+                        {% for member in board_members %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div class="d-flex align-items-center">
+                                <img src="{{ member.profile.image.url }}" class="rounded-circle me-2" style="width: 30px; height: 30px;">
+                                <span>{{ member.username }}</span>
+                            </div>
+                            {% if user == board.owner %}
+                            <form action="{% url 'boards:remove_board_member' board.pk member.pk %}" method="post">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-danger">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted">Bu panoda henüz üye yok.</p>
+                    {% endif %}
+                </div>
+                
+                {% if user == board.owner %}
+                <hr>
+                <div>
+                    <h6><i class="fas fa-user-plus me-1"></i>Üye Ekle</h6>
+                    <form action="{% url 'boards:add_board_member' board.pk %}" method="post">
+                        {% csrf_token %}
+                        <div class="input-group">
+                            <input type="text" name="username" class="form-control" placeholder="Kullanıcı adı" required>
+                            <button type="submit" class="btn btn-primary">Ekle</button>
+                        </div>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Kapat</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Aktiviteler -->
+<div class="card mt-4">
+    <div class="card-header bg-light">
+        <h5 class="card-title mb-0"><i class="fas fa-history me-2"></i>Son Aktiviteler</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="list-group list-group-flush">
+            {% for activity in activities %}
+            <div class="list-group-item">
+                <div class="d-flex w-100 justify-content-between">
+                    <h6 class="mb-1">{{ activity.user.username }}</h6>
+                    <small class="text-muted">{{ activity.created_at|timesince }} önce</small>
+                </div>
+                <p class="mb-1">{{ activity.description }}</p>
+                {% if activity.card %}
+                <small class="text-muted">
+                    <a href="{% url 'boards:card_detail' activity.card.pk %}">{{ activity.card.title }}</a>
+                </small>
+                {% endif %}
+            </div>
+            {% empty %}
+            <div class="list-group-item">
+                <p class="mb-0 text-center text-muted">Henüz hiç aktivite yok.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dragula/3.7.3/dragula.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Kart sürükleme işlevselliği
+        const listContainers = Array.from(document.querySelectorAll('.list-body'));
+        const drake = dragula(listContainers);
+        
+        drake.on('drop', function(el, target, source) {
+            // Kartın ID'si
+            const cardId = el.getAttribute('data-card-id');
+            
+            // Kaynak ve hedef listelerin ID'leri
+            const sourceListId = source.id.replace('list-', '');
+            const targetListId = target.id.replace('list-', '');
+            
+            // Kartın yeni pozisyonu
+            const cards = Array.from(target.querySelectorAll('.card-item'));
+            const newPosition = cards.indexOf(el);
+            
+            // AJAX isteği gönderme
+            fetch('{% url "boards:update_card_position" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    cardId: cardId,
+                    sourceListId: sourceListId,
+                    targetListId: targetListId,
+                    newPosition: newPosition
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (!data.success) {
+                    console.error('Kart pozisyonu güncellenirken bir hata oluştu.');
+                    // Sayfayı yeniden yükle
+                    window.location.reload();
+                }
+            })
+            .catch(error => {
+                console.error('Hata:', error);
+                window.location.reload();
+            });
+        });
+        
+        // Liste sürükleme işlevselliği
+        const boardContainer = document.querySelector('.board-container');
+        const listColumns = Array.from(document.querySelectorAll('.list-column'));
+        
+        let draggedList = null;
+        let initialX = 0;
+        let initialPosition = 0;
+        
+        // Liste sürüklemeyi başlat
+        listColumns.forEach(list => {
+            const header = list.querySelector('.list-header');
+            
+            header.addEventListener('mousedown', e => {
+                if (e.target.tagName === 'BUTTON' || e.target.closest('button') || e.target.tagName === 'I') {
+                    return;
+                }
+                
+                draggedList = list;
+                initialX = e.clientX;
+                initialPosition = Array.from(boardContainer.children).indexOf(list);
+                
+                list.style.opacity = '0.8';
+                list.style.zIndex = '1000';
+                
+                document.addEventListener('mousemove', handleMouseMove);
+                document.addEventListener('mouseup', handleMouseUp);
+                
+                e.preventDefault();
+            });
+        });
+        
+        // Liste sürükleme işlemi
+        function handleMouseMove(e) {
+            if (!draggedList) return;
+            
+            const deltaX = e.clientX - initialX;
+            draggedList.style.transform = `translateX(${deltaX}px)`;
+            
+            const allLists = Array.from(boardContainer.querySelectorAll('.list-column'));
+            const listRect = draggedList.getBoundingClientRect();
+            const listCenterX = listRect.left + listRect.width / 2;
+            
+            allLists.forEach(list => {
+                if (list !== draggedList) {
+                    const otherRect = list.getBoundingClientRect();
+                    const otherCenterX = otherRect.left + otherRect.width / 2;
+                    
+                    if (listCenterX < otherCenterX && listCenterX > otherRect.left) {
+                        boardContainer.insertBefore(draggedList, list);
+                    } else if (listCenterX > otherCenterX && listCenterX < otherRect.right && list.nextElementSibling) {
+                        boardContainer.insertBefore(draggedList, list.nextElementSibling);
+                    }
+                }
+            });
+        }
+        
+        // Liste sürükleme işlemini bitir
+        function handleMouseUp() {
+            if (!draggedList) return;
+            
+            draggedList.style.opacity = '';
+            draggedList.style.zIndex = '';
+            draggedList.style.transform = '';
+            
+            const newPosition = Array.from(boardContainer.querySelectorAll('.list-column')).indexOf(draggedList);
+            
+            if (newPosition !== initialPosition) {
+                // AJAX isteği gönderme
+                fetch('{% url "boards:update_list_position" %}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}'
+                    },
+                    body: JSON.stringify({
+                        listId: draggedList.getAttribute('data-list-id'),
+                        newPosition: newPosition
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.success) {
+                        console.error('Liste pozisyonu güncellenirken bir hata oluştu.');
+                        window.location.reload();
+                    }
+                })
+                .catch(error => {
+                    console.error('Hata:', error);
+                    window.location.reload();
+                });
+            }
+            
+            draggedList = null;
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+        }
+    });
+</script>
+{% endblock %}

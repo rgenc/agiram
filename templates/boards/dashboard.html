@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Agiram - Ana Sayfa{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="fas fa-tachometer-alt me-2"></i>Ana Sayfa</h1>
+    </div>
+    <div class="col-md-6 text-md-end">
+        <a href="{% url 'boards:board_create' %}" class="btn btn-success">
+            <i class="fas fa-plus me-1"></i>Yeni Pano Oluştur
+        </a>
+        <a href="{% url 'ai_assistant:ai_dashboard' %}" class="btn btn-primary">
+            <i class="fas fa-robot me-1"></i>AI Asistan
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Panolarım -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-clipboard-list me-2"></i>Panolarım</h5>
+            </div>
+            <div class="card-body">
+                {% if owned_boards %}
+                <div class="row row-cols-1 row-cols-md-2 g-4">
+                    {% for board in owned_boards %}
+                    <div class="col">
+                        <div class="card h-100 border-primary">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="fas fa-clipboard me-1"></i>{{ board.title }}
+                                </h5>
+                                <p class="card-text text-muted small">
+                                    {% if board.description %}
+                                    {{ board.description|truncatechars:100 }}
+                                    {% else %}
+                                    <em>Açıklama yok</em>
+                                    {% endif %}
+                                </p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">{{ board.updated_at|date:"d.m.Y" }}</small>
+                                    <span class="badge bg-primary">{{ board.lists.count }} Liste</span>
+                                </div>
+                            </div>
+                            <div class="card-footer bg-transparent border-primary">
+                                <a href="{% url 'boards:board_detail' board.pk %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-eye me-1"></i>Görüntüle
+                                </a>
+                                <a href="{% url 'ai_assistant:analyze_board' board.pk %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-chart-line me-1"></i>Analiz Et
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="mb-3"><i class="fas fa-info-circle me-1"></i>Henüz hiç pano oluşturmadınız.</p>
+                    <a href="{% url 'boards:board_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>İlk Panonuzu Oluşturun
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Üye Olduğum Panolar -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-user-friends me-2"></i>Üye Olduğum Panolar</h5>
+            </div>
+            <div class="card-body">
+                {% if member_boards %}
+                <div class="row row-cols-1 row-cols-md-2 g-4">
+                    {% for board in member_boards %}
+                    <div class="col">
+                        <div class="card h-100 border-success">
+                            <div class="card-body">
+                                <h5 class="card-title">
+                                    <i class="fas fa-clipboard me-1"></i>{{ board.title }}
+                                </h5>
+                                <p class="card-text text-muted small">
+                                    {% if board.description %}
+                                    {{ board.description|truncatechars:100 }}
+                                    {% else %}
+                                    <em>Açıklama yok</em>
+                                    {% endif %}
+                                </p>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <small class="text-muted">{{ board.updated_at|date:"d.m.Y" }}</small>
+                                    <span class="text-muted">Sahibi: {{ board.owner.username }}</span>
+                                </div>
+                            </div>
+                            <div class="card-footer bg-transparent border-success">
+                                <a href="{% url 'boards:board_detail' board.pk %}" class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-eye me-1"></i>Görüntüle
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="text-muted"><i class="fas fa-info-circle me-1"></i>Henüz hiçbir panoya üye değilsiniz.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Hızlı Başlangıç -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-bolt me-2"></i>Hızlı Başlangıç</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    <a href="{% url 'boards:board_create' %}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-plus me-2"></i>Yeni pano oluştur
+                    </a>
+                    <a href="{% url 'ai_assistant:custom_ai_query' %}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-robot me-2"></i>AI asistana sor
+                    </a>
+                    <a href="{% url 'ai_assistant:prompt_templates' %}" class="list-group-item list-group-item-action">
+                        <i class="fas fa-magic me-2"></i>Prompt şablonlarını yönet
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI İpuçları -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-lightbulb me-2"></i>AI İpuçları</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-star me-1"></i>Pano Analizi</h6>
+                    <p class="small mb-0">AI asistanı kullanarak panolarınızı analiz edin ve projelerinizin performansını artırın.</p>
+                </div>
+                <div class="alert alert-warning">
+                    <h6><i class="fas fa-star me-1"></i>Kart Açıklamaları</h6>
+                    <p class="small mb-0">AI ile detaylı ve profesyonel kart açıklamaları oluşturun.</p>
+                </div>
+                <div class="alert alert-success">
+                    <h6><i class="fas fa-star me-1"></i>Sprint Raporları</h6>
+                    <p class="small mb-0">Otomatik sprint raporları ile ekibinize hızlı ve etkili geribildirim sağlayın.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Aktiviteler -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-history me-2"></i>Son Aktiviteler</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for activity in recent_activities|slice:":5" %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ activity.user.username }}</h6>
+                            <small class="text-muted">{{ activity.created_at|timesince }} önce</small>
+                        </div>
+                        <p class="mb-1 small">{{ activity.description }}</p>
+                        <small class="text-muted">{{ activity.board.title }}</small>
+                    </div>
+                    {% empty %}
+                    <div class="list-group-item">
+                        <p class="mb-0 text-center text-muted small">Henüz hiç aktivite yok.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,210 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AI Asistana Sor - Agiram{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chat-container {
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    .chat-message {
+        margin-bottom: 15px;
+        max-width: 80%;
+    }
+    .chat-message.user {
+        margin-left: auto;
+        background-color: #dcf8c6;
+    }
+    .chat-message.ai {
+        margin-right: auto;
+        background-color: #f1f0f0;
+    }
+    .markdown-content h1, .markdown-content h2, .markdown-content h3 {
+        margin-top: 1rem;
+        margin-bottom: 0.5rem;
+    }
+    .markdown-content pre {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 0.25rem;
+    }
+    .markdown-content code {
+        color: #d63384;
+    }
+    .markdown-content blockquote {
+        border-left: 0.25rem solid #dee2e6;
+        padding-left: 1rem;
+        color: #6c757d;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-lg-8">
+        <h1><i class="fas fa-comment-dots me-2"></i>AI Asistana Sor</h1>
+    </div>
+    <div class="col-lg-4 text-lg-end">
+        <a href="{% url 'ai_assistant:ai_dashboard' %}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-1"></i>AI Paneline Dön
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-robot me-2"></i>AI Asistan</h5>
+            </div>
+            <div class="card-body">
+                {% if response %}
+                <div class="chat-container mb-4">
+                    <div class="chat-message user p-3 rounded">
+                        <div class="d-flex justify-content-between mb-2">
+                            <strong>Siz</strong>
+                            <small class="text-muted">şimdi</small>
+                        </div>
+                        <p class="mb-0">{{ prompt }}</p>
+                    </div>
+
+                    <div class="chat-message ai p-3 rounded">
+                        <div class="d-flex justify-content-between mb-2">
+                            <strong>AI Asistan</strong>
+                            <small class="text-muted">şimdi</small>
+                        </div>
+                        <div class="markdown-content">
+                            {{ response|linebreaks }}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Soru Sorma Formu -->
+                <form action="{% url 'ai_assistant:custom_ai_query' %}" method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="prompt" class="form-label">Sorgunuz</label>
+                        <textarea class="form-control" id="prompt" name="prompt" rows="4" placeholder="Proje yönetimi, kartlar, görevler veya genel sorularınızı yazın..." required></textarea>
+                    </div>
+                    <div class="text-end">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane me-1"></i>Gönder
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- İpuçları -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-lightbulb me-2"></i>İpuçları</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-check-circle me-1 text-success"></i>Sorulabilecekler:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-angle-right me-1"></i>Proje yönetim metodolojileri hakkında bilgi</li>
+                            <li><i class="fas fa-angle-right me-1"></i>Agile ve Scrum konularında yardım</li>
+                            <li><i class="fas fa-angle-right me-1"></i>Görev açıklamaları oluşturma</li>
+                            <li><i class="fas fa-angle-right me-1"></i>Sprint planlama ve toplantı önerileri</li>
+                            <li><i class="fas fa-angle-right me-1"></i>Takım içi iletişim stratejileri</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="fas fa-exclamation-circle me-1 text-danger"></i>Komut İpuçları:</h6>
+                        <ul class="list-unstyled">
+                            <li><i class="fas fa-angle-right me-1"></i>Spesifik sorular sorun</li>
+                            <li><i class="fas fa-angle-right me-1"></i>Yanıt formatını belirtin (liste, adım adım, vb.)</li>
+                            <li><i class="fas fa-angle-right me-1"></i>İçerik oluşturma için açık yönergeler verin</li>
+                            <li><i class="fas fa-angle-right me-1"></i>Konuyu ve kapsamı sınırlandırın</li>
+                            <li><i class="fas fa-angle-right me-1"></i>Örnek istiyorsanız belirtin</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Son Etkileşimler -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-history me-2"></i>Önceki Sorgularınız</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for interaction in recent_interactions %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <small class="text-muted">{{ interaction.created_at|timesince }} önce</small>
+                        </div>
+                        <p class="mb-0 small">{{ interaction.prompt|truncatechars:75 }}</p>
+                    </div>
+                    {% empty %}
+                    <div class="list-group-item">
+                        <p class="mb-0 text-center text-muted small">Henüz hiç AI etkileşimi yok.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Önerilen Sorgular -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-star me-2"></i>Önerilen Sorgular</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <button class="btn btn-outline-primary suggestion-btn" type="button" data-suggestion="Agile metodolojisi hakkında temel bilgileri anlatır mısın?">
+                        <i class="fas fa-question-circle me-1"></i>Agile metodolojisi nedir?
+                    </button>
+                    <button class="btn btn-outline-primary suggestion-btn" type="button" data-suggestion="Etkili bir sprint planlama toplantısı nasıl yapılır? Adım adım açıklar mısın?">
+                        <i class="fas fa-calendar-alt me-1"></i>Sprint planlama rehberi
+                    </button>
+                    <button class="btn btn-outline-primary suggestion-btn" type="button" data-suggestion="Bir yazılım projesinde kullanıcı hikayeleri (user stories) nasıl yazılır? Örneklerle açıklar mısın?">
+                        <i class="fas fa-book me-1"></i>User story yazım rehberi
+                    </button>
+                    <button class="btn btn-outline-primary suggestion-btn" type="button" data-suggestion="Takım içi iletişim sorunlarını çözmek için ne gibi stratejiler önerirsin?">
+                        <i class="fas fa-users me-1"></i>Takım iletişimi ipuçları
+                    </button>
+                    <button class="btn btn-outline-primary suggestion-btn" type="button" data-suggestion="Kanban ve Scrum arasındaki farklar nelerdir? Hangi durumda hangisini kullanmalıyım?">
+                        <i class="fas fa-balance-scale me-1"></i>Kanban vs Scrum karşılaştırması
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Önerilen sorgu düğmeleri
+        const suggestionButtons = document.querySelectorAll('.suggestion-btn');
+        const promptTextarea = document.getElementById('prompt');
+        
+        suggestionButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const suggestion = this.getAttribute('data-suggestion');
+                promptTextarea.value = suggestion;
+                promptTextarea.focus();
+            });
+        });
+        
+        // Markdown render için gerekirse buraya eklenebilir
+        
+        // Sohbet kaydırma
+        const chatContainer = document.querySelector('.chat-container');
+        if (chatContainer) {
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %}

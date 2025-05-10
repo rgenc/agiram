@@ -1,0 +1,215 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}AI Asistan - Agiram{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-6">
+        <h1><i class="fas fa-robot me-2"></i>AI Asistan</h1>
+    </div>
+    <div class="col-md-6 text-md-end">
+        <a href="{% url 'ai_assistant:custom_ai_query' %}" class="btn btn-primary">
+            <i class="fas fa-comment-dots me-1"></i>Asistana Sor
+        </a>
+        <a href="{% url 'ai_assistant:prompt_templates' %}" class="btn btn-outline-primary">
+            <i class="fas fa-magic me-1"></i>Prompt Şablonları
+        </a>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Panolar -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-clipboard-list me-2"></i>Panolarım</h5>
+            </div>
+            <div class="card-body">
+                {% if owned_boards or member_boards %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Pano</th>
+                                <th>Listeler</th>
+                                <th>Son Güncelleme</th>
+                                <th>İşlemler</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for board in owned_boards %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'boards:board_detail' board.pk %}">{{ board.title }}</a>
+                                    <span class="badge bg-primary ms-1">Sahibi</span>
+                                </td>
+                                <td>{{ board.lists.count }}</td>
+                                <td>{{ board.updated_at|date:"d.m.Y" }}</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{% url 'ai_assistant:analyze_board' board.pk %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-chart-line me-1"></i>Analiz Et
+                                        </a>
+                                        <a href="{% url 'ai_assistant:generate_sprint_report' board.pk %}" class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-file-alt me-1"></i>Sprint Raporu
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            
+                            {% for board in member_boards %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'boards:board_detail' board.pk %}">{{ board.title }}</a>
+                                    <span class="badge bg-secondary ms-1">Üye</span>
+                                </td>
+                                <td>{{ board.lists.count }}</td>
+                                <td>{{ board.updated_at|date:"d.m.Y" }}</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a href="{% url 'ai_assistant:analyze_board' board.pk %}" class="btn btn-sm btn-outline-primary">
+                                            <i class="fas fa-chart-line me-1"></i>Analiz Et
+                                        </a>
+                                        <a href="{% url 'ai_assistant:generate_sprint_report' board.pk %}" class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-file-alt me-1"></i>Sprint Raporu
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <p class="mb-3"><i class="fas fa-info-circle me-1"></i>Henüz hiç panonuz yok.</p>
+                    <a href="{% url 'boards:board_create' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-1"></i>İlk Panonuzu Oluşturun
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- AI Özellikleri -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-magic me-2"></i>AI Özellikleri</h5>
+            </div>
+            <div class="card-body">
+                <div class="row row-cols-1 row-cols-md-2 g-4">
+                    <div class="col">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="fas fa-chart-line me-1"></i>Pano Analizi</h5>
+                                <p class="card-text">Panolarınızı AI ile analiz edin, riskleri belirleyin ve proje yönetim önerileri alın.</p>
+                            </div>
+                            <div class="card-footer bg-transparent">
+                                <small class="text-muted">Panolarınızın detay sayfasından erişebilirsiniz.</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="fas fa-file-alt me-1"></i>Sprint Raporları</h5>
+                                <p class="card-text">Pano verilerinizden otomatik sprint raporları oluşturun ve takıma sunun.</p>
+                            </div>
+                            <div class="card-footer bg-transparent">
+                                <small class="text-muted">Panolarınızın detay sayfasından erişebilirsiniz.</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="fas fa-tasks me-1"></i>Kart Açıklamaları</h5>
+                                <p class="card-text">Kart başlığına göre detaylı, profesyonel kart açıklamaları oluşturun.</p>
+                            </div>
+                            <div class="card-footer bg-transparent">
+                                <small class="text-muted">Kart sayfalarından erişebilirsiniz.</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col">
+                        <div class="card h-100">
+                            <div class="card-body">
+                                <h5 class="card-title"><i class="fas fa-code me-1"></i>Kod İncelemesi</h5>
+                                <p class="card-text">Kodlarınızı AI'ya inceletin, hata ve iyileştirme önerileri alın.</p>
+                            </div>
+                            <div class="card-footer bg-transparent">
+                                <a href="{% url 'ai_assistant:review_code' %}" class="btn btn-sm btn-primary">İncelet</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <!-- Son Etkileşimler -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-history me-2"></i>Son AI Etkileşimleri</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for interaction in interactions %}
+                    <div class="list-group-item">
+                        <div class="d-flex w-100 justify-content-between">
+                            <h6 class="mb-1">{{ interaction.created_at|date:"d.m.Y H:i" }}</h6>
+                            <small class="text-muted">{{ interaction.created_at|timesince }} önce</small>
+                        </div>
+                        <p class="mb-1 small text-truncate">{{ interaction.prompt|truncatechars:50 }}</p>
+                        {% if interaction.board %}
+                        <small class="text-muted">Pano: {{ interaction.board.title }}</small>
+                        {% endif %}
+                        {% if interaction.card %}
+                        <small class="text-muted">Kart: {{ interaction.card.title }}</small>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <div class="list-group-item">
+                        <p class="mb-0 text-center text-muted small">Henüz hiç AI etkileşimi yok.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="card-footer bg-light text-center">
+                <a href="{% url 'ai_assistant:custom_ai_query' %}" class="btn btn-primary">
+                    <i class="fas fa-comment-dots me-1"></i>Asistana Sor
+                </a>
+            </div>
+        </div>
+        
+        <!-- İpuçları -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-lightbulb me-2"></i>AI İpuçları</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-magic me-1"></i>Prompt Şablonları</h6>
+                    <p class="small mb-0">Sık kullandığınız sorguları şablon olarak kaydedin ve tekrar kullanın.</p>
+                </div>
+                <div class="alert alert-success">
+                    <h6><i class="fas fa-code me-1"></i>Kod İncelemesi</h6>
+                    <p class="small mb-0">Kod incelemesi özelliğini kullanarak yazılım projelerinizin kalitesini artırın.</p>
+                </div>
+                <div class="alert alert-warning">
+                    <h6><i class="fas fa-question-circle me-1"></i>Özel Sorgular</h6>
+                    <p class="small mb-0">AI asistana özel sorular sorarak proje yönetimiyle ilgili her konuda yardım alabilirsiniz.</p>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{% url 'ai_assistant:custom_ai_query' %}" class="btn btn-outline-primary">
+                        <i class="fas fa-robot me-1"></i>AI Asistanı Keşfet
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,311 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ card.title }} - Agiram{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <!-- Kart Detayları -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center bg-light">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-tasks me-2"></i>Kart Detayları
+                </h5>
+                <div class="btn-group">
+                    <a href="{% url 'boards:board_detail' board.pk %}" class="btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-chevron-left me-1"></i>Panoya Dön
+                    </a>
+                    <a href="{% url 'boards:update_card' card.pk %}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-edit me-1"></i>Düzenle
+                    </a>
+                    <a href="{% url 'boards:delete_card' card.pk %}" class="btn btn-sm btn-outline-danger">
+                        <i class="fas fa-trash me-1"></i>Sil
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <h4 class="card-title mb-3">{{ card.title }}</h4>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <p class="mb-1"><strong><i class="fas fa-list me-1"></i>Liste:</strong> {{ card.list.title }}</p>
+                        <p class="mb-1"><strong><i class="fas fa-user me-1"></i>Oluşturan:</strong> {{ card.created_by.username }}</p>
+                        <p class="mb-1"><strong><i class="fas fa-calendar-alt me-1"></i>Oluşturulma:</strong> {{ card.created_at|date:"d.m.Y H:i" }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p class="mb-1">
+                            <strong><i class="fas fa-flag me-1"></i>Öncelik:</strong>
+                            {% if card.priority == 'high' %}
+                            <span class="badge bg-danger">Yüksek</span>
+                            {% elif card.priority == 'medium' %}
+                            <span class="badge bg-warning text-dark">Orta</span>
+                            {% elif card.priority == 'low' %}
+                            <span class="badge bg-success">Düşük</span>
+                            {% endif %}
+                        </p>
+                        
+                        <p class="mb-1">
+                            <strong><i class="fas fa-clock me-1"></i>Bitiş Tarihi:</strong>
+                            {% if card.due_date %}
+                            <span class="{% if card.is_overdue %}text-danger{% endif %}">
+                                {{ card.due_date|date:"d.m.Y H:i" }}
+                                {% if card.is_overdue %}
+                                <span class="badge bg-danger ms-1">Gecikmiş</span>
+                                {% endif %}
+                            </span>
+                            {% else %}
+                            <span class="text-muted">Yok</span>
+                            {% endif %}
+                        </p>
+                        
+                        <p class="mb-1">
+                            <strong><i class="fas fa-check-circle me-1"></i>Durum:</strong>
+                            {% if card.is_completed %}
+                            <span class="badge bg-success">Tamamlandı</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Devam Ediyor</span>
+                            {% endif %}
+                            
+                            <form action="{% url 'boards:toggle_card_complete' card.pk %}" method="post" class="d-inline ms-2">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm {% if card.is_completed %}btn-outline-secondary{% else %}btn-outline-success{% endif %}">
+                                    {% if card.is_completed %}
+                                    <i class="fas fa-redo-alt me-1"></i>Yeniden Aç
+                                    {% else %}
+                                    <i class="fas fa-check me-1"></i>Tamamla
+                                    {% endif %}
+                                </button>
+                            </form>
+                        </p>
+                    </div>
+                </div>
+                
+                <h5 class="card-subtitle mb-2"><i class="fas fa-align-left me-1"></i>Açıklama:</h5>
+                {% if card.description %}
+                <div class="card-text mb-3">
+                    {{ card.description|linebreaks }}
+                </div>
+                {% else %}
+                <p class="text-muted mb-3">
+                    Henüz bir açıklama eklenmemiş.
+                    <a href="{% url 'ai_assistant:generate_card_description' card.pk %}" class="btn btn-sm btn-outline-primary ms-2">
+                        <i class="fas fa-robot me-1"></i>AI ile Oluştur
+                    </a>
+                </p>
+                {% endif %}
+                
+                <h5 class="card-subtitle mb-2"><i class="fas fa-user-check me-1"></i>Atanan Kişiler:</h5>
+                <div class="mb-3">
+                    {% if card.assigned_to.all %}
+                    <div class="d-flex flex-wrap gap-2 mb-2">
+                        {% for user in card.assigned_to.all %}
+                        <div class="d-flex align-items-center bg-light p-2 rounded">
+                            <img src="{{ user.profile.image.url }}" class="rounded-circle me-2" width="30" height="30">
+                            <span>{{ user.username }}</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">Henüz kimse atanmamış.</p>
+                    {% endif %}
+                    
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#assignUserModal">
+                        <i class="fas fa-user-plus me-1"></i>Atama Yap
+                    </button>
+                </div>
+                
+                <div class="text-end mt-4">
+                    <a href="{% url 'ai_assistant:suggest_next_steps' card.pk %}" class="btn btn-primary">
+                        <i class="fas fa-robot me-1"></i>AI Önerileri Al
+                    </a>
+                    <a href="{% url 'ai_assistant:review_code' %}?card_pk={{ card.pk }}" class="btn btn-outline-secondary">
+                        <i class="fas fa-code me-1"></i>Kod İncelemesi
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dosya Ekler -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-paperclip me-2"></i>Dosya Ekler</h5>
+            </div>
+            <div class="card-body">
+                {% if attachments %}
+                <div class="list-group mb-3">
+                    {% for attachment in attachments %}
+                    <div class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                        <div>
+                            <a href="{{ attachment.file.url }}" target="_blank">
+                                <i class="fas fa-file me-1"></i> {{ attachment.file.name|slice:"11:" }}
+                            </a>
+                            <small class="text-muted d-block">
+                                {{ attachment.uploaded_at|date:"d.m.Y H:i" }} tarafından {{ attachment.uploaded_by.username }}
+                            </small>
+                        </div>
+                        <form action="{% url 'boards:delete_attachment' attachment.pk %}" method="post">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted">Henüz dosya eki yok.</p>
+                {% endif %}
+                
+                <!-- Dosya Yükleme Formu -->
+                <form action="{% url 'boards:upload_attachment' card.pk %}" method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="input-group">
+                        <input type="file" class="form-control" name="file" required>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-upload me-1"></i>Yükle
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Yorumlar -->
+        <div class="card shadow-sm">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-comments me-2"></i>Yorumlar</h5>
+            </div>
+            <div class="card-body">
+                {% if comments %}
+                <div class="comments mb-4">
+                    {% for comment in comments %}
+                    <div class="d-flex mb-3">
+                        <div class="flex-shrink-0">
+                            <img src="{{ comment.author.profile.image.url }}" class="rounded-circle me-3" width="50" height="50">
+                        </div>
+                        <div class="flex-grow-1 ms-3">
+                            <div class="bg-light p-3 rounded">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="mb-0">{{ comment.author.username }}</h6>
+                                    <small class="text-muted">{{ comment.created_at|date:"d.m.Y H:i" }}</small>
+                                </div>
+                                <p class="mb-0">{{ comment.text|linebreaks }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p class="text-muted mb-4">Henüz yorum yok.</p>
+                {% endif %}
+                
+                <!-- Yorum Ekleme Formu -->
+                <form action="{% url 'boards:card_detail' card.pk %}" method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="comment-text" class="form-label">Yorum Ekle</label>
+                        <textarea class="form-control" id="comment-text" name="comment_text" rows="3" required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane me-1"></i>Gönder
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <!-- Kart Bilgileri -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-info-circle me-2"></i>Kart Bilgileri</h5>
+            </div>
+            <div class="card-body">
+                <p class="mb-2">
+                    <strong><i class="fas fa-clipboard-list me-1"></i>Pano:</strong>
+                    <a href="{% url 'boards:board_detail' board.pk %}">{{ board.title }}</a>
+                </p>
+                <p class="mb-2">
+                    <strong><i class="fas fa-list me-1"></i>Liste:</strong> {{ card.list.title }}
+                </p>
+                <p class="mb-2">
+                    <strong><i class="fas fa-calendar-alt me-1"></i>Oluşturuldu:</strong>
+                    {{ card.created_at|date:"d.m.Y H:i" }}
+                </p>
+                <p class="mb-2">
+                    <strong><i class="fas fa-clock me-1"></i>Son Güncelleme:</strong>
+                    {{ card.updated_at|date:"d.m.Y H:i" }}
+                </p>
+                <p class="mb-0">
+                    <strong><i class="fas fa-user me-1"></i>Oluşturan:</strong>
+                    {{ card.created_by.username }}
+                </p>
+            </div>
+        </div>
+        
+        <!-- İlgili Kartlar -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light">
+                <h5 class="card-title mb-0"><i class="fas fa-link me-2"></i>Aynı Listedeki Kartlar</h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for related_card in card.list.cards.all %}
+                    <a href="{% url 'boards:card_detail' related_card.pk %}" class="list-group-item list-group-item-action {% if related_card.pk == card.pk %}active{% endif %}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">{{ related_card.title }}</h6>
+                            {% if related_card.is_completed %}
+                            <span class="badge bg-success">Tamamlandı</span>
+                            {% endif %}
+                        </div>
+                    </a>
+                    {% empty %}
+                    <div class="list-group-item">
+                        <p class="mb-0 text-muted">Bu listede başka kart yok.</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Kullanıcı Atama Modalı -->
+<div class="modal fade" id="assignUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Kullanıcı Ata</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{% url 'boards:assign_card' card.pk %}" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Kullanıcı Seçin</label>
+                        <div class="list-group">
+                            {% for member in board_members %}
+                            <label class="list-group-item">
+                                <input class="form-check-input me-1" type="checkbox" name="assigned_to" value="{{ member.id }}"
+                                    {% if member in card.assigned_to.all %}checked{% endif %}>
+                                {{ member.username }}
+                            </label>
+                            {% endfor %}
+                            <label class="list-group-item">
+                                <input class="form-check-input me-1" type="checkbox" name="assigned_to" value="{{ board.owner.id }}"
+                                    {% if board.owner in card.assigned_to.all %}checked{% endif %}>
+                                {{ board.owner.username }} (Pano Sahibi)
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">İptal</button>
+                    <button type="submit" class="btn btn-primary">Kaydet</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+                    
